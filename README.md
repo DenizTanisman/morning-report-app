@@ -4,13 +4,18 @@ Your own morning feed. Start with an empty page, create the sections you care ab
 
 Runs on **Android**, **macOS**, **Windows** and **Linux** from one codebase (Kotlin + Compose Multiplatform). English and Turkish.
 
-<p align="center"><img src="docs/demo.gif" width="300" alt="From an empty app to three sections with five YouTube channels and five news sites"></p>
-<p align="center"><a href="docs/demo.mp4">Watch the demo in full quality (mp4)</a></p>
+<p align="center">
+  <a href="docs/demo.mp4"><img src="docs/demo.webp" width="320" alt="Demo video: from an empty app to three sections with five YouTube channels and five news sites"></a>
+</p>
+
+The demo above plays by itself (1 minute 32 seconds, no sound). To pause or scrub, [open the video in a player](docs/demo.mp4).
 
 <p align="center">
-  <img src="docs/phone-dark.png" width="250" alt="A section in dark mode">
-  <img src="docs/phone-player.png" width="250" alt="A video playing in the pop-up player">
-  <img src="docs/phone-light.png" width="250" alt="A section in light mode">
+  <img src="docs/phone-add.png" width="19%" alt="Adding a YouTube channel to a section">
+  <img src="docs/phone-dark.png" width="19%" alt="A section in dark mode">
+  <img src="docs/phone-sports.png" width="19%" alt="The Sports section with videos and news">
+  <img src="docs/phone-player.png" width="19%" alt="A video playing in the pop-up player">
+  <img src="docs/phone-light.png" width="19%" alt="A section in light mode">
 </p>
 
 ![Desktop](docs/desktop.png)
