@@ -31,13 +31,16 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_B64" ]; then echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"; export ANDROID_KEYSTORE="$RUNNER_TEMP/release.keystore"; fi
+          # Without the signing secrets the maintainer uploads an APK signed on their own machine instead,
+          # so every release keeps the same signature and installs over the previous one.
+          if [ -z "$KEYSTORE_B64" ]; then echo "No signing key in this repository: the APK is attached by hand."; exit 0; fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"; export ANDROID_KEYSTORE="$RUNNER_TEMP/release.keystore"
           V="${GITHUB_REF_NAME#v}"
           ./gradlew --no-daemon :composeApp:assembleRelease -PappVersion="$V" -PappVersionCode="${{ github.run_number }}"
           cp composeApp/build/outputs/apk/release/composeApp-release.apk "MorningReport-$V-android.apk"
       - name: Upload
         env: { GH_TOKEN: '${{ github.token }}' }
-        run: gh release upload "$GITHUB_REF_NAME" MorningReport-*-android.apk --clobber
+        run: if ls MorningReport-*-android.apk >/dev/null 2>&1; then gh release upload "$GITHUB_REF_NAME" MorningReport-*-android.apk --clobber; fi
 
   desktop:
     needs: release
