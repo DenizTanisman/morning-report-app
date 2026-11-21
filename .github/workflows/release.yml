@@ -1,0 +1,65 @@
+name: Release
+# Push a tag like v1.0.0: builds the Android APK, the macOS DMG, the Windows MSI and the Linux DEB
+# and attaches them to the GitHub release of that tag.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create the release
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "Morning Report ${GITHUB_REF_NAME#v}" --notes-file docs/RELEASE_NOTES.md
+
+  android:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - name: Build the signed APK
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"; export ANDROID_KEYSTORE="$RUNNER_TEMP/release.keystore"; fi
+          V="${GITHUB_REF_NAME#v}"
+          ./gradlew --no-daemon :composeApp:assembleRelease -PappVersion="$V" -PappVersionCode="${{ github.run_number }}"
+          cp composeApp/build/outputs/apk/release/composeApp-release.apk "MorningReport-$V-android.apk"
+      - name: Upload
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: gh release upload "$GITHUB_REF_NAME" MorningReport-*-android.apk --clobber
+
+  desktop:
+    needs: release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, task: packageDmg, ext: dmg, name: macos }
+          - { os: windows-latest, task: packageMsi, ext: msi, name: windows }
+          - { os: ubuntu-latest, task: packageDeb, ext: deb, name: linux }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - name: Package
+        shell: bash
+        run: ./gradlew --no-daemon :composeApp:${{ matrix.task }} -PappVersion="${GITHUB_REF_NAME#v}"
+      - name: Upload
+        shell: bash
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          f=$(find composeApp/build/compose/binaries -name "*.${{ matrix.ext }}" | head -1)
+          cp "$f" "MorningReport-${GITHUB_REF_NAME#v}-${{ matrix.name }}.${{ matrix.ext }}"
+          gh release upload "$GITHUB_REF_NAME" MorningReport-*-${{ matrix.name }}.${{ matrix.ext }} --clobber
