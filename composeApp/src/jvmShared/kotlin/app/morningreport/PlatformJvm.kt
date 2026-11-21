@@ -219,3 +219,12 @@ actual fun localTime(millis: Long): Triple<Int, Int, Long> {
 }
 
 actual fun systemLanguage(): String = Locale.getDefault().language
+
+private val TR_MONTHS = listOf("Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Ekm", "Kas", "Ara")
+private val TR_DAYS = listOf("Pzt", "Sal", "Çar", "Per", "Cm", "Cmt", "Pz")
+
+actual fun dayLabel(millis: Long, tr: Boolean): String {
+    val d = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
+    return if (tr) "${d.dayOfMonth} ${TR_MONTHS[d.monthValue - 1]} ${TR_DAYS[d.dayOfWeek.value - 1]}"
+    else java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d", Locale.ENGLISH).format(d)
+}

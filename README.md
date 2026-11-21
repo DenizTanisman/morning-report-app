@@ -7,7 +7,15 @@ Runs on **Android**, **macOS**, **Windows** and **Linux** from one codebase (Kot
 <p align="center"><img src="docs/demo.gif" width="300" alt="From an empty app to three sections with five YouTube channels and five news sites"></p>
 <p align="center"><a href="docs/demo.mp4">Watch the demo in full quality (mp4)</a></p>
 
+<p align="center">
+  <img src="docs/phone-dark.png" width="250" alt="A section in dark mode">
+  <img src="docs/phone-player.png" width="250" alt="A video playing in the pop-up player">
+  <img src="docs/phone-light.png" width="250" alt="A section in light mode">
+</p>
+
 ![Desktop](docs/desktop.png)
+
+**The look:** Liquid-Glass style navigation (a blurred glass top bar once content scrolls under it, a floating glass tab bar with a lens that slides under the open section and hides while you read down), translucent cards on a parliament-blue backdrop in dark mode or iOS-style white cards in light mode, two-tone line icons, collapsible blocks with a sunrise mark, a light that runs round the card while a source is being looked up, and a video player that grows out of the middle of the screen.
 
 [Türkçe açıklama aşağıda ↓](#türkçe)
 
@@ -29,7 +37,7 @@ Get the latest files from **[Releases](../../releases/latest)**:
    - News: a site (`theverge.com`, `bbc.com/sport`) or a feed link. The app finds the site's RSS/Atom feed by itself. A site that publishes no feed, or blocks apps, is read through Google News instead, and its name says so (`aa.com.tr · Google News`).
    - YouTube: `@handle`, a channel link, or any video link from that channel.
 3. **Optionally give a source a time.** Switch on *Check at a set time* and write `08:00`: automatic checks read that source once a day, from that time on. Sources without a time are read on every automatic check.
-4. **Read.** Each section shows its videos as a row of thumbnails and its news as a list, newest first. Tap to open in the browser or the YouTube app. *Refresh* (or pull down) reads every source right away.
+4. **Read.** Swipe between sections or tap them in the tab bar. Each section shows its videos as a row of cards and its news as a list, newest first; tap *Videos* or *News* to fold a block. On Android a video plays right in the app in a pop-up player (the page behind blurs; fullscreen turns the phone sideways and back upright when you leave it); on desktop videos and articles open in the browser. *Refresh* (or pull down) reads every source right away.
 
 Automatic checks: on Android a background check runs about every 15 minutes (the shortest Android allows) and notifies you when there is something new; on desktop the app checks every minute while it is open. Items older than a week are dropped.
 

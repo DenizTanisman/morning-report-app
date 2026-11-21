@@ -93,6 +93,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             val scope = rememberCoroutineScope()
             val model = remember { AppModel(repo, scope) }
+            // Back closes the video dialog first (fullscreen, when on, is left before this by the player itself).
+            androidx.activity.compose.BackHandler(enabled = model.playing != null) { model.playing = null }
             LaunchedEffect(Unit) {
                 if (demo) Demo.run(model, strings)
                 else {

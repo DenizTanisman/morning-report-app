@@ -68,5 +68,14 @@ object Demo {
         // The finished result: walk through the sections.
         for (plan in model.repo.data.value.sections) { model.selected = plan.id; delay(2600) }
         model.selected = model.repo.data.value.sections.firstOrNull()?.id
+        delay(1500)
+        // Where videos play in the app, show the player dialog opening and closing once.
+        if (inAppVideo) {
+            val d = model.repo.data.value
+            val first = d.sections.firstOrNull()?.sources?.filter { it.kind == SourceKind.YOUTUBE }?.map { it.id }?.toSet().orEmpty()
+            d.items.firstOrNull { it.sourceId in first }?.let { v ->
+                model.playing = v; delay(7000); model.playing = null; delay(1500)
+            }
+        }
     }
 }

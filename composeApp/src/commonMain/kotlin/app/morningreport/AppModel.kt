@@ -28,6 +28,8 @@ class AppModel(val repo: Repository, private val scope: CoroutineScope) {
     var sourceDialog by mutableStateOf<SourceDialog?>(null)
     var sourceMenu by mutableStateOf<String?>(null)
     var showSettings by mutableStateOf(false)
+    /** The video open in the player dialog (Android); null when closed. */
+    var playing by mutableStateOf<Item?>(null)
     var refreshing by mutableStateOf(false)
     var toast by mutableStateOf<String?>(null)
 

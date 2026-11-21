@@ -58,3 +58,10 @@ fun main(args: Array<String>) {
         ) { App(model, strings) }
     }
 }
+
+actual val inAppVideo: Boolean = false
+
+@androidx.compose.runtime.Composable
+actual fun YouTubeView(videoId: String, modifier: androidx.compose.ui.Modifier, onEnded: () -> Unit) {
+    androidx.compose.foundation.layout.Box(modifier)
+}

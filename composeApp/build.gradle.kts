@@ -29,6 +29,8 @@ kotlin {
                 implementation("org.jetbrains.compose.ui:ui:1.10.3")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+                // Backdrop blur for the glass top bar and tab bar.
+                implementation("dev.chrisbanes.haze:haze:1.7.1")
             }
         }
         val commonTest by getting {

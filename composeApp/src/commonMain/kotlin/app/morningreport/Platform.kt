@@ -1,5 +1,7 @@
 package app.morningreport
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 
 /** Plain HTTP access shared by Android and desktop (both JVM, see jvmShared). */
@@ -34,3 +36,13 @@ expect fun nowMillis(): Long
 expect fun localTime(millis: Long): Triple<Int, Int, Long>
 
 expect fun systemLanguage(): String
+
+/** "Sat, Nov 21" / "21 Kas Cmt": the day shown in the top bar. */
+expect fun dayLabel(millis: Long, tr: Boolean): String
+
+/** Whether videos play inside the app (Android) or open in the browser / YouTube (desktop: no embedded browser). */
+expect val inAppVideo: Boolean
+
+/** The YouTube player for [videoId]; [onEnded] when the video finishes. Only used where [inAppVideo]. */
+@Composable
+expect fun YouTubeView(videoId: String, modifier: Modifier, onEnded: () -> Unit)
