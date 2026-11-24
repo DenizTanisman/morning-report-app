@@ -102,3 +102,16 @@ class CoreTest {
         assertTrue(again.data.value.items.isEmpty())
     }
 }
+
+class ResolverHelpersTest {
+    @Test fun upperCaseSchemeRedirect() {
+        kotlin.test.assertEquals("https://www.bloomberght.com/", Resolver.absolute("https://bloomberght.com/", "HTTPS://www.bloomberght.com/"))
+        kotlin.test.assertEquals("https://a.com/x", Resolver.absolute("https://a.com/y/z", "/x"))
+    }
+
+    @Test fun googleNewsHeadlessItemsAreDropped() {
+        val src = Source("g", SourceKind.NEWS, "x", "https://news.google.com/rss/search?q=site:x", "https://x")
+        kotlin.test.assertEquals("", Repository.tidy(src, " - Bloomberght", "").first)
+        kotlin.test.assertEquals("Dolar rekor kırdı", Repository.tidy(src, "Dolar rekor kırdı - Bloomberght", "Dolar rekor kırdı Bloomberght").first)
+    }
+}

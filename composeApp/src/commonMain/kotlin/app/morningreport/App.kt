@@ -19,6 +19,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -81,6 +82,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -93,7 +100,9 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -200,7 +209,10 @@ private fun SectionsPager(model: AppModel, data: AppData) {
     var widthPx by remember { mutableStateOf(0) }
     val wide = with(density) { widthPx.toDp() } > 760.dp
     Box(Modifier.fillMaxSize().onSizeChanged { widthPx = it.width }) {
-        HorizontalPager(pager, Modifier.fillMaxSize().hazeSource(haze).nestedScroll(barScroll), beyondViewportPageCount = 1,
+        // No pages composed off screen: when a dialog closed after a source was added, focus could land on the
+        // neighbouring page that was kept ready, and the pager scrolled there by itself (the source list then
+        // looked as if the source went into the wrong section).
+        HorizontalPager(pager, Modifier.fillMaxSize().hazeSource(haze).nestedScroll(barScroll), beyondViewportPageCount = 0,
             key = { latest.value.getOrNull(it)?.id ?: "page$it" }) { i ->
             val sec = latest.value.getOrNull(i) ?: return@HorizontalPager
             val list = rememberLazyListState()
@@ -247,7 +259,11 @@ private fun TopBar(model: AppModel, haze: HazeState?, glass: Boolean, top: andro
 private fun BarIconButton(icon: DuoIcon, label: String, spinning: Boolean = false, onClick: () -> Unit) {
     val p = LocalGlass.current
     val turn = if (spinning) rememberInfiniteTransition(label = "spin").animateFloat(0f, 360f, infiniteRepeatable(tween(900, easing = LinearEasing)), label = "turn") else null
-    Box(Modifier.size(42.dp).clip(CircleShape).clickable(onClickLabel = label) { if (!spinning) onClick() }, contentAlignment = Alignment.Center) {
+    Box(
+        Modifier.size(42.dp).clip(CircleShape).semantics { contentDescription = label; role = Role.Button }
+            .clickable(onClickLabel = label) { if (!spinning) onClick() },
+        contentAlignment = Alignment.Center,
+    ) {
         DuoIconView(icon, 24.dp, line = if (spinning) p.accent else p.label, accent = p.accent, backAlpha = 0.22f,
             modifier = Modifier.graphicsLayer { rotationZ = turn?.value ?: 0f })
     }
@@ -416,7 +432,8 @@ private fun SectionHeader(model: AppModel, data: AppData, section: Section) {
         Spacer(Modifier.width(12.dp))
         Text(section.title, style = GlassType.largeTitle, color = p.label, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
         Box {
-            Box(Modifier.size(40.dp).clip(CircleShape).background(p.card).border(0.5.dp, p.hairline, CircleShape).clickable { menu = true }, contentAlignment = Alignment.Center) {
+            Box(Modifier.size(40.dp).clip(CircleShape).background(p.card).border(0.5.dp, p.hairline, CircleShape)
+                .semantics { contentDescription = s.sectionMenu; role = Role.Button }.clickable { menu = true }, contentAlignment = Alignment.Center) {
                 DuoIconView(Duo.More, 22.dp, line = p.label, accent = p.accent, backAlpha = 0f)
             }
             DropdownMenu(menu, onDismissRequest = { menu = false }) {
@@ -447,6 +464,18 @@ private fun SourceStrip(model: AppModel, section: Section) {
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // First, so it never scrolls out of sight behind the sources.
+            item(key = "add") {
+                Row(
+                    Modifier.clip(pill).background(p.accent.copy(alpha = 0.14f)).border(0.5.dp, p.accent.copy(alpha = 0.45f), pill)
+                        .clickable { model.sourceDialog = SourceDialog(section.id) }.padding(start = 10.dp, end = 14.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    DuoIconView(Duo.Plus, 16.dp, line = p.accent, accent = p.accent, backAlpha = 0.2f)
+                    Spacer(Modifier.width(6.dp))
+                    Text(s.addSource, style = GlassType.footnote, fontWeight = FontWeight.SemiBold, color = p.accent)
+                }
+            }
             items(section.sources, key = { it.id }) { src ->
                 Row(Modifier.contentCard(pill).clickable { model.sourceMenu = src.id }.padding(start = 10.dp, end = 14.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (src.kind == SourceKind.YOUTUBE) DuoIconView(Duo.Play, 16.dp, line = p.youtube, accent = p.youtube, backAlpha = 0.5f)
@@ -460,17 +489,6 @@ private fun SourceStrip(model: AppModel, section: Section) {
                         Text(it, style = GlassType.caption, color = p.secondary)
                     }
                     if (src.lastError != null) { Spacer(Modifier.width(6.dp)); Text("!", color = p.danger, fontWeight = FontWeight.Bold) }
-                }
-            }
-            item {
-                Row(
-                    Modifier.clip(pill).background(p.accent.copy(alpha = 0.14f)).border(0.5.dp, p.accent.copy(alpha = 0.45f), pill)
-                        .clickable { model.sourceDialog = SourceDialog(section.id) }.padding(start = 10.dp, end = 14.dp, top = 8.dp, bottom = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    DuoIconView(Duo.Plus, 16.dp, line = p.accent, accent = p.accent, backAlpha = 0.2f)
-                    Spacer(Modifier.width(6.dp))
-                    Text(s.addSource, style = GlassType.footnote, fontWeight = FontWeight.SemiBold, color = p.accent)
                 }
             }
         }
@@ -648,16 +666,22 @@ private fun SectionDialogView(model: AppModel, d: SectionDialog) {
             GlassButton(if (d.renameId == null) s.create else s.save, strong = true, enabled = d.text.isNotBlank()) { model.confirmSection(s) }
         },
     ) {
+        val focus = remember { FocusRequester() }
+        LaunchedEffect(Unit) { if (!Demo.running) { delay(150); runCatching { focus.requestFocus() } } }
+        // Renaming opens with the old name selected, so typing replaces it.
+        var field by remember { mutableStateOf(TextFieldValue(d.text, TextRange(0, d.text.length))) }
+        // Text set from outside the field (the demo recording) shows up in it, with the cursor at the end.
+        LaunchedEffect(d.text) { if (field.text != d.text) field = TextFieldValue(d.text, TextRange(d.text.length)) }
         OutlinedTextField(
-            d.text, { d.text = it }, singleLine = true, label = { Text(s.sectionName) },
+            field, { field = it; d.text = it.text }, singleLine = true, label = { Text(s.sectionName) },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done), keyboardActions = KeyboardActions(onDone = { model.confirmSection(s) }),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().focusRequester(focus),
         )
         if (d.renameId == null) {
             Spacer(Modifier.height(12.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 items(s.suggestions) { name ->
-                    Row(Modifier.contentCard(RoundedCornerShape(50)).clickable { d.text = name }.padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.contentCard(RoundedCornerShape(50)).clickable { d.text = name; field = TextFieldValue(name, TextRange(name.length)) }.padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         DuoIconView(Duo.forSection(name), 16.dp, line = p.label, accent = p.accent, backAlpha = 0.3f)
                         Spacer(Modifier.width(5.dp))
                         Text(name, style = GlassType.footnote, color = p.label)
@@ -682,19 +706,25 @@ private fun SourceDialogView(model: AppModel, d: SourceDialog) {
         Column(Modifier.widthIn(min = 280.dp)) {
             Segmented(listOf(SourceKind.NEWS to s.news, SourceKind.YOUTUBE to s.youtube), d.kind, !d.busy) { d.kind = it; d.error = null }
             Spacer(Modifier.height(14.dp))
+            val focus = remember { FocusRequester() }
+            LaunchedEffect(Unit) { if (!Demo.running) { delay(150); runCatching { focus.requestFocus() } } }
             OutlinedTextField(
                 d.input, { d.input = it; d.error = null }, singleLine = true, enabled = !d.busy,
                 placeholder = { Text(if (d.kind == SourceKind.NEWS) s.newsHint else s.youtubeHint, style = GlassType.footnote) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { model.confirmSource(s) }),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().focusRequester(focus),
             )
             Spacer(Modifier.height(14.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // The whole row toggles, not only the switch.
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).toggleable(d.timeOn, enabled = !d.busy, role = Role.Switch) { d.timeOn = it; d.error = null },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 DuoIconView(Duo.Clock, 20.dp, line = p.label, accent = p.accent, backAlpha = 0.25f)
                 Spacer(Modifier.width(10.dp))
                 Text(s.atTime, style = GlassType.body, color = p.label, modifier = Modifier.weight(1f))
-                Switch(d.timeOn, { d.timeOn = it; d.error = null }, enabled = !d.busy)
+                Switch(d.timeOn, null, enabled = !d.busy)
             }
             AnimatedVisibility(d.timeOn) {
                 Column {
@@ -736,11 +766,14 @@ private fun SourceMenuView(model: AppModel, src: Source) {
         Text("${s.lastChecked}: $last", style = GlassType.footnote, color = p.secondary, modifier = Modifier.padding(top = 4.dp))
         src.lastError?.let { Text("${s.failed}: $it", style = GlassType.footnote, color = p.danger) }
         Spacer(Modifier.height(16.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).toggleable(timeOn, role = Role.Switch) { timeOn = it; err = null },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             DuoIconView(Duo.Clock, 20.dp, line = p.label, accent = p.accent, backAlpha = 0.25f)
             Spacer(Modifier.width(10.dp))
             Text(s.sourceTime, style = GlassType.body, color = p.label, modifier = Modifier.weight(1f))
-            Switch(timeOn, { timeOn = it; err = null })
+            Switch(timeOn, null)
         }
         if (timeOn) OutlinedTextField(time, { time = it.take(5); err = null }, singleLine = true, modifier = Modifier.width(120.dp).padding(top = 6.dp),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
@@ -769,9 +802,12 @@ private fun SettingsView(model: AppModel, ai: AiSettings) {
             Text(s.aiBody, style = GlassType.footnote, color = p.secondary, modifier = Modifier.padding(top = 6.dp))
             Text(s.aiHowTo + " ↗", style = GlassType.footnote, fontWeight = FontWeight.SemiBold, color = p.accent,
                 modifier = Modifier.padding(top = 8.dp).clickable { runCatching { uri.openUri(GUIDE_URL) } })
-            Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.padding(top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)).toggleable(draft.enabled, role = Role.Switch) { draft = draft.copy(enabled = it) },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(s.aiEnabled, style = GlassType.body, color = p.label, modifier = Modifier.weight(1f))
-                Switch(draft.enabled, { draft = draft.copy(enabled = it) })
+                Switch(draft.enabled, null)
             }
             AnimatedVisibility(draft.enabled) {
                 Column {

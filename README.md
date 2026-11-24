@@ -5,10 +5,10 @@ Your own morning feed. Start with an empty page, create the sections you care ab
 Runs on **Android**, **macOS**, **Windows** and **Linux** from one codebase (Kotlin + Compose Multiplatform). English and Turkish.
 
 <p align="center">
-  <a href="docs/demo.mp4"><img src="docs/demo.webp" width="320" alt="Demo video: from an empty app to three sections with five YouTube channels and five news sites"></a>
+  <a href="docs/demo.mp4"><img src="docs/demo.webp" width="320" alt="Demo video: a Fun section gets two sites and two YouTube channels, a video plays, then Space and Earth sections are added"></a>
 </p>
 
-The demo above plays by itself (1 minute 32 seconds, no sound). To pause or scrub, [open the video in a player](docs/demo.mp4).
+The demo above plays by itself (30 seconds, no sound). To pause or scrub, [open the video in a player](docs/demo.mp4).
 
 <p align="center">
   <img src="docs/phone-add.png" width="19%" alt="Adding a YouTube channel to a section">
@@ -99,7 +99,9 @@ JDK 17+ and, for Android, the Android SDK.
 
 Pushing a tag such as `v1.0.1` builds all four packages on GitHub Actions and attaches them to the release (see `.github/workflows/release.yml`). The Android build is signed when the `ANDROID_KEYSTORE_B64`, `ANDROID_KEYSTORE_PASSWORD` and `ANDROID_KEY_ALIAS` secrets are set.
 
-The demo recording is the real app driven by `Demo.kt`: `adb shell am start -n app.morningreport/.MainActivity --ez demo true`, or `--demo` on desktop.
+The demo recording is the real app driven by `Demo.kt`: `adb shell am start -n app.morningreport/.MainActivity --ez demo true --es lang en`, or `--demo` on desktop. `tools/demo-video/make.py` turns the raw screen recording into `docs/demo.mp4` and `docs/demo.webp` (logo intro, waiting cut out); the steps are at the top of that file.
+
+Everything shown in the demo is free to show: [xkcd](https://xkcd.com/license.html) (CC BY-NC 2.5), [Pepper&Carrot / David Revoy](https://www.peppercarrot.com/en/license/index.html) (CC BY 4.0), [Blender Studio](https://studio.blender.org/) (CC BY; the video is the *OVERGROWN* teaser), [NoCopyrightSounds](https://ncs.io/usage-policy) (copyright-free music), and NASA, NASA Earth Observatory and USGS (US government works, public domain).
 
 ## License
 

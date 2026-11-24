@@ -1,5 +1,11 @@
 package app.morningreport
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+
 /**
  * Turns whatever the person typed into a readable source.
  *
@@ -12,7 +18,7 @@ object Resolver {
 
     private val CHANNEL_ID = Regex("^UC[A-Za-z0-9_-]{22}$")
 
-    fun resolve(kind: SourceKind, input: String): Source = when (kind) {
+    suspend fun resolve(kind: SourceKind, input: String): Source = when (kind) {
         SourceKind.YOUTUBE -> youtube(input.trim())
         SourceKind.NEWS -> news(input.trim())
     }
@@ -39,7 +45,10 @@ object Resolver {
         if (!(host.endsWith("youtube.com") || host == "youtu.be")) throw Failure("not_youtube")
         // A channel id in the address is the answer already; the page would also list other channels.
         val given = Regex("/channel/(UC[A-Za-z0-9_-]{22})").find(pageUrl)?.groupValues?.get(1)
-        val html = if (given != null) "" else try { Http.get(pageUrl, "text/html").second } catch (e: Exception) { throw Failure("youtube_unreachable") }
+        val html = if (given != null) "" else try { Http.get(pageUrl, "text/html").second } catch (e: Exception) {
+            // YouTube answers 404 for a handle that does not exist: that is a wrong name, not a network problem.
+            throw Failure(if (e.message?.startsWith("HTTP 404") == true) "channel_not_found" else "youtube_unreachable")
+        }
         val id = given ?: channelIdFromPage(html, isVideo = Regex("/(watch|shorts/|live/)|youtu\\.be/").containsMatchIn(pageUrl))
             ?: throw Failure("channel_not_found")
         val feedUrl = "https://www.youtube.com/feeds/videos.xml?channel_id=$id"
@@ -75,12 +84,12 @@ object Resolver {
 
     // ---------------------------------------------------------------- News
 
-    private fun news(input: String): Source {
+    private suspend fun news(input: String): Source {
         if (input.isEmpty()) throw Failure("empty")
         val start = if (input.startsWith("http://") || input.startsWith("https://")) input else "https://$input"
         if (!hostOf(start).contains('.')) throw Failure("not_a_site")
-        val (finalUrl, body) = try { Http.get(start, "application/rss+xml, application/atom+xml, text/html;q=0.9, */*;q=0.8") }
-            catch (e: Exception) { return googleNews(start) ?: throw Failure("site_unreachable") }
+        val (finalUrl, body) = try { Http.get(start, "application/rss+xml, application/atom+xml, text/html;q=0.9, */*;q=0.8", timeoutMs = 12_000) }
+            catch (e: Exception) { return googleNews(start, null) ?: throw Failure("site_unreachable") }
 
         // 1. It already is a feed.
         Xml.parseFeed(body, finalUrl)?.let { feed ->
@@ -104,32 +113,64 @@ object Resolver {
         if (path.isNotEmpty()) candidates += listOf("/rss.xml", "/feed", "/rss", "/index.xml").map { "$o/$path$it" }
         candidates += listOf("/feed", "/rss", "/rss.xml", "/feed.xml", "/atom.xml", "/index.xml", "/feeds/posts/default").map { o + it }
 
-        for (c in candidates.distinct()) {
-            val feed = runCatching { Http.get(c, "application/rss+xml, application/atom+xml, */*") }
-                .mapCatching { (u, b) -> u to Xml.parseFeed(b, u) }.getOrNull() ?: continue
+        // All at once with a short timeout: some sites answer slowly or not at all on paths they don't have.
+        val probes = candidates.distinct().take(14)
+        val results = coroutineScope {
+            probes.map { c ->
+                async(Dispatchers.IO) {
+                    runCatching { Http.get(c, "application/rss+xml, application/atom+xml, */*", timeoutMs = 8_000) }
+                        .mapCatching { (u, b) -> u to Xml.parseFeed(b, u) }.getOrNull()
+                }
+            }.awaitAll()
+        }
+        for (feed in results) {
+            if (feed == null) continue
             val parsed = feed.second ?: continue
             if (parsed.entries.isEmpty() && parsed.title.isBlank()) continue
             val pageTitle = Regex("<title[^>]*>([^<]+)</title>", RegexOption.IGNORE_CASE).find(body)?.groupValues?.get(1)?.let(::unescape)?.trim()
             val name = parsed.title.ifBlank { pageTitle ?: hostOf(o) }
             return Source(newId(), SourceKind.NEWS, name, feed.first, parsed.link ?: o)
         }
-        return googleNews(finalUrl) ?: throw Failure("feed_not_found")
+        return googleNews(finalUrl, body) ?: throw Failure("feed_not_found")
     }
 
     /**
      * Last resort: Google News' public search feed restricted to the site. Works for almost any news site,
      * links go through Google News. The name says so, so the person knows where the list comes from.
      */
-    private fun googleNews(url: String): Source? {
+    private fun googleNews(url: String, html: String?): Source? {
         val host = hostOf(url).removePrefix("www.")
         val path = url.substringAfter("://").substringAfter('/', "").substringBefore('?').trim('/')
-        val query = "site:" + if (path.isNotEmpty() && !path.contains('.')) "$host/$path" else host
-        val (hl, gl, ceid) = if (systemLanguage() == "tr") Triple("tr", "TR", "TR:tr") else Triple("en-US", "US", "US:en")
-        val feedUrl = "https://news.google.com/rss/search?q=" + query.replace(":", "%3A").replace("/", "%2F") + "&hl=$hl&gl=$gl&ceid=$ceid"
-        val feed = runCatching { Xml.parseFeed(Http.get(feedUrl, "application/rss+xml").second, feedUrl) }.getOrNull() ?: return null
+        // Google News only lists a site well in the site's own language and region: aa.com.tr/tr/ekonomi gives one
+        // result in the US edition and a hundred in the Turkish one. The page says its language; else the domain does.
+        val lang = html?.let { Regex("<html[^>]*\\slang=[\"']?([A-Za-z]{2})", RegexOption.IGNORE_CASE).find(it)?.groupValues?.get(1)?.lowercase() }
+            ?: TLD_LANG[host.substringAfterLast('.')] ?: "en"
+        val edition = EDITIONS[lang] ?: EDITIONS.getValue("en")
+        val queries = buildList {
+            if (path.isNotEmpty() && !path.contains('.')) add("site:$host/$path")
+            path.split('/').lastOrNull { it.length > 2 && !it.contains('.') && it != lang }?.let { add("site:$host $it") }
+            add("site:$host")
+        }
+        var best: Pair<String, ParsedFeed>? = null
+        for (q in queries) {
+            val feedUrl = "https://news.google.com/rss/search?q=" + q.replace(":", "%3A").replace("/", "%2F").replace(" ", "+") + "&" + edition
+            val feed = runCatching { Xml.parseFeed(Http.get(feedUrl, "application/rss+xml", timeoutMs = 10_000).second, feedUrl) }.getOrNull() ?: continue
+            if (best == null || feed.entries.size > best.second.entries.size) best = feedUrl to feed
+            if (feed.entries.size >= 10) break // the narrowest query that still has enough news
+        }
+        val (feedUrl, feed) = best ?: return null
         if (feed.entries.isEmpty()) return null
         return Source(newId(), SourceKind.NEWS, "$host · Google News", feedUrl, "https://$host")
     }
+
+    private val TLD_LANG = mapOf("tr" to "tr", "de" to "de", "at" to "de", "fr" to "fr", "es" to "es", "mx" to "es", "it" to "it",
+        "pt" to "pt", "br" to "pt", "nl" to "nl", "jp" to "ja", "ru" to "ru", "pl" to "pl")
+    private val EDITIONS = mapOf(
+        "en" to "hl=en-US&gl=US&ceid=US:en", "tr" to "hl=tr&gl=TR&ceid=TR:tr", "de" to "hl=de&gl=DE&ceid=DE:de",
+        "fr" to "hl=fr&gl=FR&ceid=FR:fr", "es" to "hl=es-419&gl=MX&ceid=MX:es-419", "it" to "hl=it&gl=IT&ceid=IT:it",
+        "pt" to "hl=pt-BR&gl=BR&ceid=BR:pt-419", "nl" to "hl=nl&gl=NL&ceid=NL:nl", "ja" to "hl=ja&gl=JP&ceid=JP:ja",
+        "ru" to "hl=ru&gl=RU&ceid=RU:ru", "pl" to "hl=pl&gl=PL&ceid=PL:pl",
+    )
 
     // ---------------------------------------------------------------- helpers
 
@@ -142,8 +183,10 @@ object Resolver {
 
     fun origin(url: String): String = url.substringBefore("://") + "://" + url.substringAfter("://").substringBefore('/').substringBefore('?')
 
+    // Schemes are case-insensitive: some sites redirect to "HTTPS://…".
     fun absolute(base: String, href: String): String = when {
-        href.startsWith("http://") || href.startsWith("https://") -> href
+        href.startsWith("http://", ignoreCase = true) || href.startsWith("https://", ignoreCase = true) ->
+            href.substringBefore("://").lowercase() + "://" + href.substringAfter("://")
         href.startsWith("//") -> base.substringBefore("://") + ":" + href
         href.startsWith("/") -> origin(base) + href
         else -> base.substringBeforeLast('/') + "/" + href

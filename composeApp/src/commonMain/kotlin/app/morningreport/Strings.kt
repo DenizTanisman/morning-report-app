@@ -47,6 +47,7 @@ class Strings(val tr: Boolean) {
     fun hiddenByAi(n: Int) = t("Hidden by AI ($n)", "AI'ın gizledikleri ($n)")
     val hiddenByAiLabel = t("hidden by AI filtering", "AI ayıklamasıyla gizlendi")
     val newShort = t("New", "Yeni")
+    val sectionMenu = t("Section options", "Başlık seçenekleri")
     val openInYoutube = t("Open in YouTube", "YouTube'da aç")
     val sourceTime = t("Daily check time", "Günlük kontrol saati")
     val noTime = t("Every check", "Her kontrolde")

@@ -120,6 +120,7 @@ class Repository(
                 val id = source.id + ":" + e.id
                 if (id !in known && fresh.none { it.id == id }) {
                     val (title, summary) = tidy(source, e.title, e.summary)
+                    if (title.isBlank()) return@forEach // Google News lists some pages with no headline at all
                     fresh += Item(id, source.id, title, e.link, e.published.takeIf { it > 0 } ?: now, summary.take(400), e.thumbnail, now)
                 }
             }
@@ -184,7 +185,7 @@ class Repository(
         /** Google News titles end in " - Publisher" and its summary only repeats the title; most feeds need nothing. */
         fun tidy(source: Source, title: String, summary: String): Pair<String, String> {
             var t = title
-            if (source.feedUrl.contains("news.google.com/")) t = t.substringBeforeLast(" - ").ifBlank { t }
+            if (source.feedUrl.contains("news.google.com/")) t = t.substringBeforeLast(" - ").trim()
             val sum = summary.takeUnless { it.isBlank() || it.startsWith(t) || it.startsWith(title) || t.startsWith(it) } ?: ""
             return t to sum
         }

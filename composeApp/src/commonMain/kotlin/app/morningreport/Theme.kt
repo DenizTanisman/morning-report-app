@@ -267,6 +267,9 @@ object Duo {
     val Games = duo("games", listOf("M12,3 a9,9 0 1 1 0,18 a9,9 0 1 1 0,-18 z"), listOf(
         "M12,3 a9,9 0 1 1 0,18 a9,9 0 1 1 0,-18 z", "M12,3 v18", "M3,12 h18",
         "M5.6,5.6 c2.4,2.6 2.4,10.2 0,12.8", "M18.4,5.6 c-2.4,2.6 -2.4,10.2 0,12.8"))
+    val Globe = duo("globe", listOf("M12,3 a9,9 0 1 1 0,18 a9,9 0 1 1 0,-18 z"), listOf(
+        "M12,3 a9,9 0 1 1 0,18 a9,9 0 1 1 0,-18 z", "M12,3 c-2.9,2.6 -2.9,15.4 0,18", "M12,3 c2.9,2.6 2.9,15.4 0,18",
+        "M3,12 h18", "M4.6,7.5 h14.8", "M4.6,16.5 h14.8"))
     val Watch = duo("watch", listOf("M6,5 h12 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-12 a4,4 0 0 1 -4,-4 v-6 a4,4 0 0 1 4,-4 z"),
         listOf("M6,5 h12 a4,4 0 0 1 4,4 v6 a4,4 0 0 1 -4,4 h-12 a4,4 0 0 1 -4,-4 v-6 a4,4 0 0 1 4,-4 z"), frontFills = listOf("M10,8.8 L15.6,12 L10,15.2 Z"))
     val Learn = duo("learn", listOf("M3,5 h5.5 a3.5,3.5 0 0 1 3.5,3.5 V20 a2.5,2.5 0 0 0 -2.5,-2.5 H3 z"), listOf(
@@ -292,6 +295,7 @@ object Duo {
             has("econ", "ekonom", "finan", "para", "borsa", "market", "money", "piyasa", "business", "iş dünya") -> Economy
             has("sport", "spor", "nba", "futbol", "football", "soccer", "basket", "maç", "game", "oyun") -> Games
             has("tech", "tekno", "yapay", "ai", "bilişim", "software", "yazılım", "code", "kod") -> Tech
+            has("earth", "nature", "doğa", "climate", "iklim", "planet", "gezegen") -> Globe
             has("scien", "bilim", "uzay", "space", "health", "sağlık", "tıp") -> Science
             has("society", "toplum", "people", "insan", "kültür", "culture") -> Society
             has("video", "youtube", "izle", "watch", "film", "dizi") -> Watch

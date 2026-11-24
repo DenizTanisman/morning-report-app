@@ -11,7 +11,7 @@ class LiveTest {
     private val live = System.getenv("LIVE") == "1"
 
     private fun check(kind: SourceKind, input: String) {
-        val s = Resolver.resolve(kind, input)
+        val s = kotlinx.coroutines.runBlocking { Resolver.resolve(kind, input) }
         val feed = Repository.fetchFeed(s)!!
         println("OK  ${kind.name.padEnd(7)} ${input.padEnd(22)} → ${s.name} | ${s.feedUrl} | ${feed.entries.size} items | ${feed.entries.firstOrNull()?.title}")
         assertTrue(feed.entries.isNotEmpty(), input)
@@ -24,6 +24,8 @@ class LiveTest {
             SourceKind.NEWS to "bbc.com/turkce",
             SourceKind.NEWS to "https://feeds.bbci.co.uk/news/business/rss.xml",
             SourceKind.NEWS to "aa.com.tr",
+            SourceKind.NEWS to "bloomberght.com",
+            SourceKind.NEWS to "aa.com.tr/tr/ekonomi",
             SourceKind.NEWS to "arstechnica.com",
             SourceKind.NEWS to "espn.com",
             SourceKind.YOUTUBE to "https://www.youtube.com/watch?v=dQw4w9WgXcQ",

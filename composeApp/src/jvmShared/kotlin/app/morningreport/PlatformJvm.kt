@@ -20,13 +20,13 @@ actual object Http {
     private const val UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36 MorningReport/1.0"
     private const val MAX_BYTES = 8 * 1024 * 1024
 
-    private fun open(url: String, accept: String): Pair<String, HttpURLConnection> {
+    private fun open(url: String, accept: String, timeoutMs: Int = 20_000): Pair<String, HttpURLConnection> {
         var current = url
         repeat(7) {
             val c = URI(current).toURL().openConnection() as HttpURLConnection
             c.instanceFollowRedirects = false
-            c.connectTimeout = 15_000
-            c.readTimeout = 20_000
+            c.connectTimeout = minOf(15_000, timeoutMs)
+            c.readTimeout = timeoutMs
             c.setRequestProperty("User-Agent", UA)
             c.setRequestProperty("Accept", accept)
             c.setRequestProperty("Accept-Language", "en-US,en;q=0.9,tr;q=0.8")
@@ -57,8 +57,8 @@ actual object Http {
         out.toByteArray()
     }
 
-    actual fun get(url: String, accept: String): Pair<String, String> {
-        val (finalUrl, c) = open(url, accept)
+    actual fun get(url: String, accept: String, timeoutMs: Int): Pair<String, String> {
+        val (finalUrl, c) = open(url, accept, timeoutMs)
         try {
             val bytes = readAll(c)
             return finalUrl to decode(bytes, c.contentType)

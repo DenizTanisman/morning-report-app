@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 /** Plain HTTP access shared by Android and desktop (both JVM, see jvmShared). */
 expect object Http {
     /** GET [url]; returns the final URL after redirects and the body. Throws on network errors and non-2xx. */
-    fun get(url: String, accept: String = "*/*"): Pair<String, String>
+    fun get(url: String, accept: String = "*/*", timeoutMs: Int = 20_000): Pair<String, String>
     fun getBytes(url: String): ByteArray
     fun postJson(url: String, body: String, bearer: String?): String
 }
