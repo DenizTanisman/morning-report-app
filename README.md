@@ -22,7 +22,7 @@ The demo above plays by itself (30 seconds, no sound). To pause or scrub, [open 
 
 **The look:** Liquid-Glass style navigation (a blurred glass top bar once content scrolls under it, a floating glass tab bar with a lens that slides under the open section and hides while you read down), translucent cards on a parliament-blue backdrop in dark mode or iOS-style white cards in light mode, two-tone line icons, collapsible blocks with a sunrise mark, a light that runs round the card while a source is being looked up, and a video player that grows out of the middle of the screen.
 
-[Türkçe açıklama aşağıda ↓](#türkçe)
+[Turkish language support ↓](#turkish)
 
 ## Download
 
@@ -109,20 +109,17 @@ MIT, see [LICENSE](LICENSE).
 
 ---
 
-## Türkçe
+## Turkish
 
-**Sabah Raporu**, sabah okuduklarını tek yerde toplayan bir uygulama. Boş başlar: Ekonomi, Spor ya da istediğin başka başlıkları sen açarsın, her başlığa takip ettiğin haber sitelerini ve YouTube kanallarını eklersin. Hesap yok, sunucu yok; uygulama kaynakları doğrudan sitelerden, senin cihazında okur. Telefon dili Türkçeyse arayüz Türkçe açılır.
+The app is also fully available in Turkish, where it is called **Sabah Raporu**. If the device language is Turkish, the interface opens in Turkish. The steps above are the same; the main labels are:
 
-**İndir:** [Releases](../../releases/latest) sayfasından cihazına uygun dosyayı al (Android `.apk`, Mac `.dmg`, Windows `.msi`, Linux `.deb`). Mac'te ilk açılışta **sağ tık → Aç → Aç**, Windows'ta uyarı çıkarsa **Ek bilgi → Yine de çalıştır**.
-
-**Kullanım:**
-1. **Başlık oluştur:** Ekonomi, Spor, Bilim…
-2. **Kaynak ekle:** *Haber* ya da *YouTube* seç. Haber için site adresini (`bbc.com/turkce`) ya da RSS linkini yaz; uygulama sitenin akışını kendisi bulur. RSS'i olmayan siteler Google News üzerinden okunur. YouTube için `@kanal`, kanal linki ya da kanaldan herhangi bir video linki yeter.
-3. **İstersen saat ver:** *Belirli saatte kontrol et*'i açıp `08:00` yazarsan o kaynak günde bir kez, o saatten sonra okunur. Saat vermezsen her otomatik kontrolde okunur. *Yenile* her zaman hepsini okur.
-
-**AI ile ayıklama (isteğe bağlı):** Kendi çalıştırdığın bir dil modeli her yeni öğeyi ilgi alanlarına göre 0–10 arası puanlar; eşiğin altındakiler silinmez, *AI'ın gizledikleri* altında katlanır. Bilgisayarda en kolayı:
-1. [Ollama](https://ollama.com/download)'yı kur.
-2. Terminalde `ollama pull gemma3:4b` (bir kerelik, ~3,4 GB).
-3. Uygulamada **Ayarlar → AI ile ayıkla**'yı aç: sunucu `http://localhost:11434/v1`, model `gemma3:4b`, ilgi alanlarını kendi cümlelerinle yaz (örn. *"Merkez bankası kararları, NBA, yeni yapay zekâ modelleri. Magazin değil."*), sonra **Dene ve yeniden puanla**.
-
-Telefonda model bilgisayarda çalışır: bilgisayarda Ollama'yı ağa aç (yukarıdaki *On Android* adımları), telefonda sunucu adresine bilgisayarın yerel IP'sini yaz (`http://192.168.1.20:11434/v1`). İkisi aynı Wi-Fi'da olmalı.
+| English | Turkish |
+|---|---|
+| Create a section | Başlık oluştur |
+| + Add source | + Kaynak ekle |
+| News / YouTube | Haber / YouTube |
+| Check at a set time | Belirli saatte kontrol et |
+| Refresh | Yenile |
+| Settings → AI filtering | Ayarlar → AI ile ayıkla |
+| Hidden by AI | AI'ın gizledikleri |
+| Test and re-score | Dene ve yeniden puanla |
